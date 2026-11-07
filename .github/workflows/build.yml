@@ -1,0 +1,27 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    container: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot + Android
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates ~/.config/godot build
+          [ ~ = /root ] || mv /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/
+          keytool -genkeypair -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          JH=$(dirname $(dirname $(readlink -f $(which javac))))
+          for f in editor_settings-4.3.tres editor_settings-4.tres; do
+            printf '[gd_resource type="EditorSettings" format=3]\n[resource]\nexport/android/android_sdk_path = "/usr/lib/android-sdk"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' "$JH" "$PWD" > ~/.config/godot/$f
+          done
+      - name: Export APK
+        run: |
+          godot --headless --import || true
+          godot --headless --export-debug "Android" build/RumahTua.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RumahTua-apk
+          path: build/RumahTua.apk
