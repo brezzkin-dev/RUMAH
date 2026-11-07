@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -21,6 +23,16 @@ jobs:
         run: |
           godot --headless --import || true
           godot --headless --export-debug "Android" build/RumahTua.apk
+      - name: Cek APK
+        run: |
+          ls -lh build/RumahTua.apk
+          unzip -tq build/RumahTua.apk || echo "cek unzip dilewati"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Rumah Tua build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          files: build/RumahTua.apk
       - uses: actions/upload-artifact@v4
         with:
           name: RumahTua-apk
